@@ -2,10 +2,16 @@
 var net = require('net');
 var events = require('events');
 var util = require('util');
-var informer = new events.EventEmitter(); //
-informer.on("REGISTERED", register);
+
+
 function PlayerServer() {
     this.server = net.createServer(function(player) {
+    player.on('register', function(data) {
+    	//var parts = data.toString().split('\n');
+    	var message = JSON.parse(data);
+    	if(message.type == 'REGISTER')
+    		this.emit('register',message.student_ID);
+    })	
         //TODO
     });
 }
@@ -18,7 +24,7 @@ PlayerServer.prototype.onInput = function(player, data) {
 
 
 PlayerServer.prototype.listen = function(port) {
-	this.server.listen(port, register);
+	this.server.listen(port);
 	//TODO
 }
 
