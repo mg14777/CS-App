@@ -5,32 +5,32 @@ var util = require('util');
 
 
 function PlayerServer() {
+    var self = this;
     this.server = net.createServer(function(player) {
-    player.on('register', function(data) {
-    	//var parts = data.toString().split('\n');
-    	var message = JSON.parse(data);
-    	if(message.type == 'REGISTER')
-    		this.emit('register',message.student_ID);
-    })	
-        //TODO
+    player.on('data', function(data) {
+        self.onInput(player, data);
+        });	
     });
 }
 util.inherits(PlayerServer, events.EventEmitter);
 
 
 PlayerServer.prototype.onInput = function(player, data) {
-    //TODO
+    var message = JSON.parse(data);
+    if(message.type === 'REGISTER')
+        this.emit('register', player, message.student_id);
+    if(message.type === 'MOVE')
+        this.emit('move', player, message);
 }
 
 
 PlayerServer.prototype.listen = function(port) {
 	this.server.listen(port);
-	//TODO
 }
 
 
 PlayerServer.prototype.close = function() {
-    //TODO
+    this.server.close();
 }
 
 

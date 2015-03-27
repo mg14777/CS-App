@@ -10,8 +10,12 @@ var GameServer   = require('./game_server.js');
 function Server() {
     this.game_id = -1;
     this.colours = [];
+   	var self = this;
+   	this.player_server = new PlayerServer;
+   	this.game_server = new GameServer;
+   	self.start(player_server, game_server);
 
-    //TODO
+   	//TODO
 }
 
 /**
@@ -23,7 +27,8 @@ function Server() {
  * @param game_port
  */
 Server.prototype.start = function(player_port, game_port) {
-    //TODO
+    this.server.listen(player_port);
+    this.server.listen(game_port);
 }
 
 
@@ -31,7 +36,7 @@ Server.prototype.start = function(player_port, game_port) {
  * Function to close down the player server and the game server
  */
 Server.prototype.close = function() {
-    //TODO
+    this.server.close();
 }
 
 
