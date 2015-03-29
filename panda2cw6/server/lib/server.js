@@ -19,7 +19,8 @@ function Server() {
 	});
 
    	this.player_server.on('register', function (player, playerID) {
-   		self.game_server.addPlayer(player, self.getNextColour(), self.game_id);
+      
+   		self.game_server.addPlayer(player,self.getNextColour(), self.game_id);
 	});
 
 	this.player_server.on('move', function (player, move) {
@@ -68,8 +69,9 @@ Server.prototype.gameId = function() {
  * @returns {*}
  */
 Server.prototype.getNextColour = function() {
-	var colour = this.colours[0];
-	return colour;
+  if(this.colours.length == 0)
+    return null;
+	return this.colours.splice(0,1);
     //TODO
 }
 
