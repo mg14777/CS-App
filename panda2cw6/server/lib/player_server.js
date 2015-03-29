@@ -7,11 +7,12 @@ var util = require('util');
 function PlayerServer() {
     var self = this;
     this.server = net.createServer(function(player) {
-    player.on('data', function(data) {
-        self.onInput(player, data);
+        player.on('data', function(data) {
+            self.onInput(player, data);
         });	
     });
 }
+
 util.inherits(PlayerServer, events.EventEmitter);
 
 

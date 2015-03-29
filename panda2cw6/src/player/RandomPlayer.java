@@ -16,6 +16,9 @@ import java.util.Set;
  * which must be one from the list.
  */
 public class RandomPlayer implements Player {
+    public score () {
+        
+    }
     public RandomPlayer(ScotlandYardView view, String graphFilename) {
         //TODO: A better AI makes use of `view` and `graphFilename`.
     }

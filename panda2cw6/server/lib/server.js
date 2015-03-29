@@ -2,19 +2,29 @@
 var PlayerServer = require('./player_server.js');
 var GameServer   = require('./game_server.js');
 
+
 /**
  * Constructor for the class. Needs to initialise the players server
  * and game server, create the list of colours and initialise a game id
  * @constructor
  */
 function Server() {
+	var self = this;
     this.game_id = -1;
-    this.colours = [];
-   	var self = this;
+    this.colours = ['Black', 'Blue', 'Green', 'Red', 'White', 'Yellow'];
    	this.player_server = new PlayerServer;
    	this.game_server = new GameServer;
-   	self.start(player_server, game_server);
+   	this.game_server.on('initialised', function (gameID) {
+		self.game_id = gameID;
+	});
 
+   	this.player_server.on('register', function (player, playerID) {
+   		self.game_server.addPlayer(player, self.getNextColour(), self.game_id);
+	});
+
+	this.player_server.on('move', function (player, move) {
+   		self.game_server.makeMove(player, move);
+	});
    	//TODO
 }
 
@@ -27,8 +37,9 @@ function Server() {
  * @param game_port
  */
 Server.prototype.start = function(player_port, game_port) {
-    this.server.listen(player_port);
-    this.server.listen(game_port);
+    this.player_server.listen(player_port);
+    this.game_server.listen(game_port);
+    //TODO
 }
 
 
@@ -36,7 +47,8 @@ Server.prototype.start = function(player_port, game_port) {
  * Function to close down the player server and the game server
  */
 Server.prototype.close = function() {
-    this.server.close();
+	this.player_server.close();
+    this.game_server.close();
 }
 
 
@@ -45,6 +57,7 @@ Server.prototype.close = function() {
  * @returns {number|*}
  */
 Server.prototype.gameId = function() {
+	return this.game_id;
     //TODO
 }
 
@@ -55,6 +68,8 @@ Server.prototype.gameId = function() {
  * @returns {*}
  */
 Server.prototype.getNextColour = function() {
+	var colour = this.colours[0];
+	return colour;
     //TODO
 }
 
