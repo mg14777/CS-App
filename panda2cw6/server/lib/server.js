@@ -71,8 +71,9 @@ Server.prototype.gameId = function() {
 Server.prototype.getNextColour = function() {
   if(this.colours.length == 0)
     return null;
-	return this.colours.splice(0,1);
-    //TODO
+	var colour = this.colours[0];
+  this.colours.splice(0,1);
+  return colour;
 }
 
 
