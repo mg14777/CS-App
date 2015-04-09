@@ -55,7 +55,7 @@ public class RandomPlayer implements Player {
         try {map = read.readGraph(graphFilename);}
         catch(Exception e) { System.out.println("Inexistent file");}
     }
-    public void initialise() {
+    public void initialise(int mrxLocation) {
     	for(Colour colour :view.getPlayers()) {
     		Map<Ticket, Integer> tickets = new HashMap<Ticket, Integer>();
     		if(colour.equals(Colour.Black)) {
@@ -64,13 +64,15 @@ public class RandomPlayer implements Player {
     			tickets.put(Ticket.Underground, view.getPlayerTickets(Colour.Black, Ticket.Underground));
     			tickets.put(Ticket.Double, view.getPlayerTickets(Colour.Black, Ticket.Double));
     			tickets.put(Ticket.Secret, view.getPlayerTickets(Colour.Black, Ticket.Secret));
+    			simulatedPlayers.add(new RealPlayer(Colour.Black,mrxLocation,tickets));
     		}
     		else {
     			tickets.put(Ticket.Bus, view.getPlayerTickets(colour, Ticket.Bus));
     			tickets.put(Ticket.Taxi, view.getPlayerTickets(colour, Ticket.Taxi));
     			tickets.put(Ticket.Underground, view.getPlayerTickets(colour, Ticket.Underground));
+    			simulatedPlayers.add(new RealPlayer(colour,view.getPlayerLocation(colour),tickets));
     		}
-    		simulatedPlayers.add(new RealPlayer(colour,view.getPlayerLocation(colour),tickets));
+    		
     	}
     	
     }
@@ -107,15 +109,25 @@ public class RandomPlayer implements Player {
         //TODO: Some clever AI here ...
     	int score = 0;
     	Move selectMove = MoveTicket.instance(Colour.Black,Ticket.Bus, 0);
-    	initialise();
+    	System.out.println("Size : "+moves.size());
     	for(Move move : moves) {
+    		simulatedPlayers.clear();
+    		initialise(location);
     		modify(Colour.Black,move);
     		Model testModel = new Model(view,simulatedPlayers,graphFilename,view.getRounds());
+    		
     		int newScore = score(testModel.validMoves(Colour.Black));
     		if(newScore > score) {
-    		    selectMove = move;
+    			
+    			if(move instanceof MoveDouble)
+    				selectMove = MoveDouble.instance(Colour.Black,((MoveDouble) move).move1,((MoveDouble) move).move2);
+    			else if(move instanceof MoveTicket)
+    				selectMove = MoveTicket.instance(Colour.Black,((MoveTicket) move).ticket,((MoveTicket) move).target);
+    			else
+    				;
     			score = newScore;
     		}
+    		System.out.println(score + "  "+selectMove.toString());
     	}
         /*int choice = new Random().nextInt(moves.size());
         for (Move move : moves) {
@@ -124,6 +136,7 @@ public class RandomPlayer implements Player {
             }
             choice--;
         }*/
+    	System.out.println("AI Move " +selectMove.toString());
         return selectMove;
     }
     
