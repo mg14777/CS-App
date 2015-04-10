@@ -4,13 +4,14 @@ import scotlandyard.*;
 import solution.ScotlandYardModel;
 import scotlandyard.MoveTicket;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-
+import java.io.*;
 /**
  * The RandomPlayer class is an example of a very simple AI that
  * makes a random move from the given set of moves. Since the
@@ -23,10 +24,13 @@ public class RandomPlayer implements Player {
     ScotlandYardView view;
     String graphFilename;
     private Graph map;
+    final int totalNodes;
+    final int INF = 10000;
+    int [][] distanceMatrix; //= new int[totalNodes][totalNodes];
     List<RealPlayer> simulatedPlayers = new ArrayList<RealPlayer>();
     public int score (List<Move> move) {
             int score = 0;
-            int danger = 0;
+            int distance = 0;
             final int mapCorner = 5;
             final int mapMain = 10;
             final int movePoint = 2;
@@ -36,6 +40,14 @@ public class RandomPlayer implements Player {
             	score += mapCorner;
             else
             	score += mapMain;
+            for(Colour colour: view.getPlayers()) {
+            	if(!colour.equals(Colour.Black)) {
+            		 //System.out.println("Location(Black,Detective) :   "+(getPlayer(Colour.Black).location-1)+" "+(getPlayer(colour).location-1));
+            		score += distanceMatrix[getPlayer(Colour.Black).location-1][getPlayer(colour).location-1];
+            		distance += distanceMatrix[getPlayer(Colour.Black).location-1][getPlayer(colour).location-1];
+            	}
+            }
+            System.out.println(distance);
             /*for(Colour player: view.getPlayers()) {
                 for(Move singleMove: move) 
                     if(singleMove instanceof MoveTicket)
@@ -54,6 +66,9 @@ public class RandomPlayer implements Player {
         ScotlandYardGraphReader read = new ScotlandYardGraphReader();
         try {map = read.readGraph(graphFilename);}
         catch(Exception e) { System.out.println("Inexistent file");}
+        totalNodes = map.getNodes().size();
+        this.distanceMatrix = new int[totalNodes][totalNodes];
+        
     }
     public void initialise(int mrxLocation) {
     	for(Colour colour :view.getPlayers()) {
@@ -98,6 +113,63 @@ public class RandomPlayer implements Player {
     			
     		
     }
+    public List<Integer> neighbours(int node) {
+    	List<Integer> neighbours = new ArrayList<Integer>();
+    	List<Edge<Integer,Route>> edges = new ArrayList<Edge<Integer,Route>>(map.getEdges(node));
+    	for(Edge<Integer,Route> edge: edges) {
+    		if(edge.source()==node)
+    			neighbours.add(edge.target());
+    		else
+    			neighbours.add(edge.source());
+    	}
+    	return neighbours;
+    }
+    public void floydMarshall() {
+    	//Initialize the matrix
+    	for(int i=0;i<totalNodes;i++) {
+    		List<Integer> neighbours = new ArrayList<Integer>(neighbours(i+1));
+    		for(int j=0;j<totalNodes;j++) {
+    			if(neighbours.contains(j+1))
+    				distanceMatrix[i][j] = 1;
+    			else if(i==j)
+    				distanceMatrix[i][j] = 0;
+    			else
+    				distanceMatrix[i][j] = INF;
+    		}
+    	}
+    	//Iterating through intermediate vertex(k)
+    	for(int k=0;k<totalNodes;k++) {
+    		//Iterating through source vertex(i)
+    		for(int i=0;i<totalNodes;i++) {
+    			//Iterating through destination vertex(j)
+    			for(int j=0;j<totalNodes;j++) {
+    				if(distanceMatrix[i][k]+distanceMatrix[k][j] < distanceMatrix[i][j])
+    					distanceMatrix[i][j] = distanceMatrix[i][k]+distanceMatrix[k][j];
+    			}
+    				
+    		}
+    	}
+    	File file = new File("out.txt");
+    	try {
+    	file.createNewFile();
+    	PrintWriter writer = new PrintWriter(file);
+    	for(int i=0;i<totalNodes;i++) {
+    		writer.write(Integer.toString(i+1)+"       ");
+    		for(int j=0;j<totalNodes;j++) {
+    			writer.write(Integer.toString(distanceMatrix[i][j])+" ");
+    		}
+    		writer.println("");
+    	}
+    	writer.flush();
+    	writer.close();
+    	}
+    	catch(Exception e) { System.out.println("Inexistent file");}
+    	
+    	
+    	
+    		
+    	
+    }
     public RealPlayer getPlayer(Colour colour) {
         for(RealPlayer player: simulatedPlayers)
             if(player.colour.equals(colour))
@@ -110,6 +182,7 @@ public class RandomPlayer implements Player {
     	int score = 0;
     	Move selectMove = MoveTicket.instance(Colour.Black,Ticket.Bus, 0);
     	System.out.println("Size : "+moves.size());
+    	floydMarshall();
     	for(Move move : moves) {
     		simulatedPlayers.clear();
     		initialise(location);
@@ -127,7 +200,7 @@ public class RandomPlayer implements Player {
     				;
     			score = newScore;
     		}
-    		System.out.println(score + "  "+selectMove.toString());
+    		//System.out.println(score + "  "+selectMove.toString());
     	}
         /*int choice = new Random().nextInt(moves.size());
         for (Move move : moves) {
