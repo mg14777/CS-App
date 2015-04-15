@@ -5,17 +5,24 @@ import scotlandyard.*;
 
 
 
+
 public class Model {
 	//int mrxLocation;
-	ScotlandYardView view;
+	//ScotlandYardView view;
 	//Map<Ticket,Integer> mrxTickets;
 	private List<RealPlayer> players = new ArrayList<RealPlayer>();
 	private Graph map;
 	 private List<Boolean> rounds;
-	Model(ScotlandYardView view,List<RealPlayer> players,String graphFileName,List<Boolean> rounds) {
-		this.view = view;
+	 public Boolean winnerMrX;  
+	 public int roundCounter = 0;
+	 private int x = 0;          //current player index
+	 private int numberOfDetectives;
+	Model(List<RealPlayer> players,String graphFileName,List<Boolean> rounds,int roundCounter) {
+		//this.view = view;
+		this.roundCounter = roundCounter;
 		this.players = players;
 		this.rounds = rounds;
+		this.numberOfDetectives = players.size()-1;
 		ScotlandYardGraphReader read = new ScotlandYardGraphReader();
 		try {map = read.readGraph(graphFileName);}
         catch(Exception e) { System.out.println("Inexistent file");}
@@ -67,7 +74,7 @@ public class Model {
      */
     protected List<Move> doublevalidMoves(Colour colour, int target,
      Edge<Integer,Route> route1, int secretmoves) {
-        List<Edge<Integer, Route>> routes2 = new ArrayList<Edge<Integer,Route>>(map.getEdges(target));
+        List<Edge<Integer, Route>> routes2 = new ArrayList<Edge<Integer,Route>>(map.getEdgesFrom(target));
         List<Move> doublemoves = new ArrayList<Move>();
         for(Edge<Integer,Route> route2 : routes2 ) {
             MoveTicket move1 = MoveTicket.instance(colour,Ticket.fromRoute(route1.data()),target);
@@ -117,18 +124,18 @@ public class Model {
         int flag = 0;
         if(player.equals(Colour.Black))
             flag = 1;
-        List<Edge<Integer, Route>> routes = new ArrayList<Edge<Integer,Route>>(map.getEdges(location));
+        List<Edge<Integer, Route>> routes = new ArrayList<Edge<Integer,Route>>(map.getEdgesFrom(location));
         List<Move> moves = new ArrayList<Move>();
         int doublemovetickets = getPlayerTickets(player,Ticket.Double);
         int secretmovetickets = getPlayerTickets(player,Ticket.Secret);
-        for(Edge<Integer,Route> route : routes ) {
-            if(getPlayerTickets(player,Ticket.fromRoute(route.data())) != 0) {
+        for(Edge<Integer,Route> route : routes){
+            if(getPlayerTickets(player,Ticket.fromRoute(route.data())) != 0){
                 if((route.target()).equals(location)) {
                     if(check(player,route.source())) {
                         moves.add(MoveTicket.instance(player,Ticket.fromRoute(route.data()), route.source()));
                         if(flag==1 && secretmovetickets!=0)
                             moves.add(MoveTicket.instance(player,Ticket.Secret, route.source()));
-                    }
+                    } 
                     if(flag==1 && check(player,route.source()) && doublemovetickets!=0)
                         moves.addAll(doublevalidMoves(player, route.source(), route, secretmovetickets));
                 }
@@ -164,12 +171,61 @@ public class Model {
                 return player;
         return null;
     }
+    public List<RealPlayer> getPlayers() {
+    	return players;
+    }
     public int getPlayerTickets(Colour colour, Ticket ticket) {
         for(RealPlayer player: players)
             if(player.colour.equals(colour))
                 return player.tickets.get(ticket);
         return 0;
         
+    }
+    protected void nextPlayer() {
+        x++;
+    }
+    /**
+     * 
+     * @return True if all detectives can't move
+     */
+    private boolean frozenDetectives() {
+        int numberOfFrozenDetectives = 0;
+        for(RealPlayer player: players)
+            if(player.colour != Colour.Black && validMoves(player.colour).get(0) instanceof MovePass)
+            	numberOfFrozenDetectives++;
+        if(numberOfFrozenDetectives == numberOfDetectives)
+            return true;
+        else
+            return false;
+    }
+    /**
+     * 
+     * @return True if Mr.X can't move
+     */
+    private boolean frozenMrX() {
+            if(validMoves(Colour.Black).size()==0)
+                return true;
+            else
+                return false;
+    }
+
+    public boolean isGameOver() {
+        if(players.size() == 0)
+            return false;
+        if(frozenMrX()) {
+            winnerMrX = false;
+            return true;
+        }
+        for(RealPlayer player : players)
+            if((players.get(0).location == player.location) && !player.colour.equals(Colour.Black)) {
+                winnerMrX = false;
+                return true;
+            }    
+        if((rounds.size()==roundCounter)|| frozenDetectives()||(rounds.size()==(roundCounter+1)&&x==numberOfDetectives+1)) {
+            winnerMrX = true;
+            return true;
+        }
+        return false;
     }
 	
 	
