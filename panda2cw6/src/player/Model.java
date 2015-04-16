@@ -8,7 +8,7 @@ import scotlandyard.*;
 
 public class Model {
 	//int mrxLocation;
-	//ScotlandYardView view;
+	ScotlandYardView view;
 	//Map<Ticket,Integer> mrxTickets;
 	private List<RealPlayer> players = new ArrayList<RealPlayer>();
 	private Graph map;
@@ -17,10 +17,10 @@ public class Model {
 	 public int roundCounter = 0;
 	 private int x = 0;          //current player index
 	 private int numberOfDetectives;
-	Model(List<RealPlayer> players,String graphFileName,List<Boolean> rounds,int roundCounter) {
-		//this.view = view;
+	Model(ScotlandYardView view,List<RealPlayer> players,String graphFileName,List<Boolean> rounds,int roundCounter) {
+		this.view = view;
 		this.roundCounter = roundCounter;
-		this.players = players;
+		this.players.addAll(players);
 		this.rounds = rounds;
 		this.numberOfDetectives = players.size()-1;
 		ScotlandYardGraphReader read = new ScotlandYardGraphReader();
