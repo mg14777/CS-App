@@ -26,7 +26,7 @@ public class RandomPlayer implements Player {
     private Graph map;
     final int totalNodes;
     final int INF = 10000;
-    public int depth = 1; 
+    public int depth = 2; 
     public Move selectMove = MoveTicket.instance(Colour.Black,Ticket.Taxi, 0);
     int [][] distanceMatrix; //= new int[totalNodes][totalNodes];
     List<RealPlayer> simulatedPlayers = new ArrayList<RealPlayer>();
@@ -86,9 +86,12 @@ public class RandomPlayer implements Player {
     			simulatedPlayers.add(new RealPlayer(Colour.Black,mrxLocation,tickets));
     		}
     		else {
+    			
     			tickets.put(Ticket.Bus, view.getPlayerTickets(colour, Ticket.Bus));
     			tickets.put(Ticket.Taxi, view.getPlayerTickets(colour, Ticket.Taxi));
     			tickets.put(Ticket.Underground, view.getPlayerTickets(colour, Ticket.Underground));
+    			tickets.put(Ticket.Double, view.getPlayerTickets(colour, Ticket.Double));
+    			tickets.put(Ticket.Secret, view.getPlayerTickets(colour, Ticket.Secret));
     			simulatedPlayers.add(new RealPlayer(colour,view.getPlayerLocation(colour),tickets));
     		}
     		
@@ -112,6 +115,8 @@ public class RandomPlayer implements Player {
     			tickets.put(Ticket.Bus, model.getPlayerTickets(colour, Ticket.Bus));
     			tickets.put(Ticket.Taxi, model.getPlayerTickets(colour, Ticket.Taxi));
     			tickets.put(Ticket.Underground, model.getPlayerTickets(colour, Ticket.Underground));
+    			tickets.put(Ticket.Double, model.getPlayerTickets(colour, Ticket.Double));
+    			tickets.put(Ticket.Secret, model.getPlayerTickets(colour, Ticket.Secret));
     			simulatedPlayers.add(new RealPlayer(colour,model.getPlayerLocation(colour),tickets));
     		}
     		
@@ -161,7 +166,7 @@ public class RandomPlayer implements Player {
 		}
 		else
 			;
-    	 if(move.colour!= Colour.Black)                                          //if detective -> add used ticket to MrX
+    	 if(move.colour!= Colour.Black && !(move instanceof MovePass))                                          //if detective -> add used ticket to MrX
              model.getPlayer(Colour.Black).tickets.put(((MoveTicket) move).ticket, model.getPlayerTickets(Colour.Black,((MoveTicket) move).ticket) + 1);
          else
              model.roundCounter++;                                                     //if MrX -> go to next round
@@ -236,8 +241,11 @@ public class RandomPlayer implements Player {
     			return -10000;
     	}
     	*/
+    	System.out.println("Min Move for loop entered");
     	for(Move move1: model.validMoves(Colour.Blue)) {
-    		Model testModel = new Model(view,model.getPlayers(),graphFilename,view.getRounds(),model.roundCounter);
+    		simulatedPlayers.clear();
+    		initialiseModel(model);
+    		Model testModel = new Model(view,simulatedPlayers,graphFilename,view.getRounds(),model.roundCounter);
     		modifyModel(testModel,move1);
     		for(Move move2: testModel.validMoves(Colour.Green)) {
     			modifyModel(testModel,move2);
@@ -284,14 +292,16 @@ public class RandomPlayer implements Player {
     		//System.out.println("Root in Max :"+model.getPlayerTickets(Colour.Black, Ticket.Double));
     		initialiseModel(model);
     		Model testModel = new Model(view,simulatedPlayers,graphFilename,view.getRounds(),model.roundCounter);
-    		System.out.println("Test Model Double Tickets" + testModel.getPlayerTickets(Colour.Black, Ticket.Double));
+    		//System.out.println("Test Model Double Tickets" + testModel.getPlayerTickets(Colour.Black, Ticket.Double));
     		modifyModel(testModel,move);
     		if(currentDepth == depth){
+    		
         		score = score(testModel.validMoves(Colour.Black));
         	}
-    		else
+    		else {
+    			
     			score = minMove(testModel,currentDepth+1);
-    		
+    		}
     		if(score > bestScore) {
     			bestScore = score;
     			if(move instanceof MoveDouble)
@@ -314,6 +324,7 @@ public class RandomPlayer implements Player {
     	
     	floydMarshall();
     	System.out.println("Size : "+moves.size());
+    	simulatedPlayers.clear();
     	initialise(location);
     	/*Model testModel1 = new Model(simulatedPlayers,graphFilename,view.getRounds(),view.getRound());
 		//System.out.println(testModel1.getPlayerLocation(Colour.Blue));
@@ -330,7 +341,7 @@ public class RandomPlayer implements Player {
     	*/
     	System.out.println("before this ");
     	Model root = new Model(view,simulatedPlayers,graphFilename,view.getRounds(),view.getRound());
-    	
+    	//System.out.println("Root Location:"+root.validMoves(Colour.Black).size());
     	maxMove(root,1);
     	
 		
