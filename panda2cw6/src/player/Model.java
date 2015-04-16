@@ -120,7 +120,9 @@ public class Model {
     
    
     public List<Move> validMoves(Colour player) {
+    	 
         int location = getPlayer(player).location;
+        
         int flag = 0;
         if(player.equals(Colour.Black))
             flag = 1;
@@ -128,6 +130,7 @@ public class Model {
         List<Move> moves = new ArrayList<Move>();
         int doublemovetickets = getPlayerTickets(player,Ticket.Double);
         int secretmovetickets = getPlayerTickets(player,Ticket.Secret);
+        
         for(Edge<Integer,Route> route : routes){
             if(getPlayerTickets(player,Ticket.fromRoute(route.data())) != 0){
                 if((route.target()).equals(location)) {
