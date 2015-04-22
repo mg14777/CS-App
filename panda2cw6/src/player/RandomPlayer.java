@@ -3,7 +3,7 @@ package player;
 import scotlandyard.*;
 import solution.ScotlandYardModel;
 import scotlandyard.MoveTicket;
-
+import java.util.HashSet;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,19 +26,22 @@ public class RandomPlayer implements Player {
     private Graph map;
     final int totalNodes;
     final int INF = 10000;
-    public int depth = 2; 
-    public Move selectMove = MoveTicket.instance(Colour.Black,Ticket.Taxi, 0);
+    public int depth = 3; 
+    public int indi = 0;
+    public int i = 0;
+    public int i3 = 0;
+    public Move selectMove = MoveTicket.instance(Colour.Black,Ticket.Taxi, 185);
     int [][] distanceMatrix; //= new int[totalNodes][totalNodes];
     List<RealPlayer> simulatedPlayers = new ArrayList<RealPlayer>();
-    public int score (List<Move> move) {
-    		System.out.println("Score Move size: "+move.size());
+    public int score (List<Move> move,Model model) {
+    		//System.out.println("Score Move size: "+move.size());
             int score = 0;
             int distance = 0;
             final int mapCorner = 5;
             final int mapMain = 10;
             final int movePoint = 2;
             score = score + (move.size()*movePoint);
-            int neighbours = map.getEdges(view.getPlayerLocation(Colour.Black)).size();
+            int neighbours = map.getEdges(model.getPlayerLocation(Colour.Black)).size();
             if(neighbours < 4)
             	score += mapCorner;
             else
@@ -46,8 +49,8 @@ public class RandomPlayer implements Player {
             for(Colour colour: view.getPlayers()) {
             	if(!colour.equals(Colour.Black)) {
             		 //System.out.println("Location(Black,Detective) :   "+(getPlayer(Colour.Black).location-1)+" "+(getPlayer(colour).location-1));
-            		score += distanceMatrix[getPlayer(Colour.Black).location-1][getPlayer(colour).location-1];
-            		distance += distanceMatrix[getPlayer(Colour.Black).location-1][getPlayer(colour).location-1];
+            		score += distanceMatrix[model.getPlayer(Colour.Black).location-1][model.getPlayer(colour).location-1];
+            		distance += distanceMatrix[model.getPlayer(Colour.Black).location-1][model.getPlayer(colour).location-1];
             	}
             }
             //System.out.println(distance);
@@ -230,41 +233,95 @@ public class RandomPlayer implements Player {
                 return player;
         return null;
     }
-    public int minMove(Model model,int currentDepth) {
+    public int minMove(Model model,int currentDepth,int alpha) {
     	int bestScore = 90000;
     	int score = 0;
-    	/*
+    	int parentDistance = 0;
+    	int childDistance = 0;
     	if(model.isGameOver()) {
     		if(model.winnerMrX)
     			return 10000;
     		else 
     			return -10000;
     	}
-    	*/
-    	System.out.println("Min Move for loop entered");
-    	for(Move move1: model.validMoves(Colour.Blue)) {
+    	for(Colour colour: view.getPlayers()) {
+        	if(!colour.equals(Colour.Black)) {
+        		
+        		parentDistance += distanceMatrix[model.getPlayer(Colour.Black).location-1][model.getPlayer(colour).location-1];
+        	}
+        }
+    	
+    	//System.out.println("Min Move for loop entered");
+    	for(Move move1: removeDuplicates(model.validMoves(Colour.Blue))) {
     		simulatedPlayers.clear();
     		initialiseModel(model);
     		Model testModel = new Model(view,simulatedPlayers,graphFilename,view.getRounds(),model.roundCounter);
     		modifyModel(testModel,move1);
-    		for(Move move2: testModel.validMoves(Colour.Green)) {
+    		for(Move move2: removeDuplicates(testModel.validMoves(Colour.Green))) {
     			modifyModel(testModel,move2);
-    			for(Move move3: testModel.validMoves(Colour.Red)) {
+    			for(Move move3: removeDuplicates(testModel.validMoves(Colour.Red))) {
         			modifyModel(testModel,move3);
-        			for(Move move4: testModel.validMoves(Colour.White)) {
+        			for(Move move4: removeDuplicates(testModel.validMoves(Colour.White))) {
             			modifyModel(testModel,move4);
-            			for(Move move5: testModel.validMoves(Colour.Yellow)) {
-            				Model testModelReal = new Model(view,model.getPlayers(),graphFilename,view.getRounds(),model.roundCounter);
+            			for(Move move5: removeDuplicates(testModel.validMoves(Colour.Yellow))) {
+            				simulatedPlayers.clear();
+            	    		initialiseModel(model);
+            	    		Model testModelReal = new Model(view,simulatedPlayers,graphFilename,view.getRounds(),model.roundCounter);
+            	    		
+        					//System.out.println("MODEL NO. : "+indi);
             				modifyModel(testModelReal,move1);
             				modifyModel(testModelReal,move2);
             				modifyModel(testModelReal,move3);
             				modifyModel(testModelReal,move4);
             				modifyModel(testModelReal,move5);
+            				childDistance = 0;
+            				for(Colour colour: view.getPlayers()) {
+            	            	if(!colour.equals(Colour.Black)) {
+            	            		
+            	            		childDistance += distanceMatrix[testModel.getPlayer(Colour.Black).location-1][testModel.getPlayer(colour).location-1];
+            	            	}
+            	            }
             				if(currentDepth == depth){
-            	        		score = score(testModelReal.validMoves(Colour.Black));
+            					
+            	        		score = score(testModelReal.validMoves(Colour.Black),testModelReal);
+            	        		//System.out.println(indi+".      Alpha: "+alpha+"  Beta:"+model.beta+"   Score: "+score+"   DEPTH: "+depth);
+            	        		System.out.println("Total models in 2nd level evaluated: "+indi);
+            	        		if(score < model.beta && (score > alpha) )
+            	        			model.beta = score;
+            	        		else if(score<alpha) {
+            	        			model.beta = score;
+            	        			return score;
+            	        		}
+            	        		else
+            	        			;
             	        	}
-            	    		else
-            	    			score = maxMove(testModelReal,currentDepth+1);
+            	    		else if(parentDistance - childDistance >= 0) {
+            	    			System.out.println("Difference before going to 3rd ply:  " + (parentDistance - childDistance));
+            	    			score = maxMove(testModelReal,currentDepth+1,model.beta);
+            	    			if(score < model.beta && (score > alpha) )
+            	        			model.beta = score;
+            	        		else if(score<alpha) {
+            	        			model.beta = score;
+            	        			return score;
+            	        		}
+            	        		else
+            	        			;
+            	    		}
+            	    		else {
+            	    			score = score(testModelReal.validMoves(Colour.Black),testModelReal);
+            	    			indi++;
+            	        		//System.out.println(indi+".      Alpha: "+alpha+"  Beta:"+model.beta+"   Score: "+score+"   DEPTH: "+currentDepth);
+            	    			System.out.println("Total models in 2nd level evaluated: "+indi);
+            	    			if(score < model.beta && (score > alpha) )
+            	        			model.beta = score;
+            	        		else if(score<alpha) {
+            	        			model.beta = score;
+            	        			return score;
+            	        		}
+            	        		else
+            	        			;
+            	    		}
+            	    			
             	    		
             	    		if(score < bestScore) {
             	    			bestScore = score;
@@ -274,34 +331,88 @@ public class RandomPlayer implements Player {
     			}
     		}
     	}
+    	//System.out.println("Scored detectives");
     	return bestScore;
     }
-    public int maxMove(Model model,int currentDepth) {
+    public int maxMove(Model model,int currentDepth,int beta) {
     	int bestScore = 0;
     	int score = 0;
-    	/*if(model.isGameOver()) {
+    	
+    	int parentDistance = 0;
+    	int childDistance = 0;
+    	if(model.isGameOver()) {
     		if(model.winnerMrX)
     			return 10000;
     		else 
     			return -10000;
     	}
-    	*/
-    	for(Move move : model.validMoves(Colour.Black)) {
+    	for(Colour colour: view.getPlayers()) {
+        	if(!colour.equals(Colour.Black)) {
+        		
+        		parentDistance += distanceMatrix[model.getPlayer(Colour.Black).location-1][model.getPlayer(colour).location-1];
+        	}
+        }
+        
+    	
+    	for(Move move : removeDuplicates(model.validMoves(Colour.Black))) {
     		
     		simulatedPlayers.clear();
-    		//System.out.println("Root in Max :"+model.getPlayerTickets(Colour.Black, Ticket.Double));
+    		
     		initialiseModel(model);
     		Model testModel = new Model(view,simulatedPlayers,graphFilename,view.getRounds(),model.roundCounter);
-    		//System.out.println("Test Model Double Tickets" + testModel.getPlayerTickets(Colour.Black, Ticket.Double));
+    		
+			
     		modifyModel(testModel,move);
+    		childDistance = 0;
+    		for(Colour colour: view.getPlayers()) {
+    			
+            	if(!colour.equals(Colour.Black)) {
+            		
+            		childDistance += distanceMatrix[testModel.getPlayer(Colour.Black).location-1][testModel.getPlayer(colour).location-1];
+            	}
+            }
     		if(currentDepth == depth){
     		
-        		score = score(testModel.validMoves(Colour.Black));
+        		score = score(removeDuplicates(testModel.validMoves(Colour.Black)),testModel);
+        		i3++;
+        		System.out.println("MAX FINAL LEVEL 3: "+i3+"    DEPTH: "+depth);
+        		if(score>model.alpha && (score < beta))
+        			model.alpha = score;
+        		else if(score > beta) {
+        			model.alpha = score;
+        			return score;
+        		}
+        		else
+        			;
         	}
-    		else {
+    		else if(childDistance - parentDistance >= 0) {
     			
-    			score = minMove(testModel,currentDepth+1);
+    			score = minMove(testModel,currentDepth+1,model.alpha);
+    			if(score>model.alpha && (score < beta))
+        			model.alpha = score;
+    			else if(score > beta) {
+        			model.alpha = score;
+        			return score;
+        		}
+    			System.out.println("");
+    			System.out.println("");
+    			System.out.println("");
     		}
+    		else {
+    		
+    			score = score(removeDuplicates(testModel.validMoves(Colour.Black)),testModel);
+        		i++;
+        		System.out.println("MAX FINAL: "+i+"    DEPTH: "+currentDepth);
+        		if(score>model.alpha && (score < beta))
+        			model.alpha = score;
+        		else if(score > beta) {
+        			model.alpha = score;
+        			return score;
+        		}
+        		
+    		}
+    			
+    		
     		if(score > bestScore) {
     			bestScore = score;
     			if(move instanceof MoveDouble)
@@ -341,8 +452,19 @@ public class RandomPlayer implements Player {
     	*/
     	System.out.println("before this ");
     	Model root = new Model(view,simulatedPlayers,graphFilename,view.getRounds(),view.getRound());
-    	//System.out.println("Root Location:"+root.validMoves(Colour.Black).size());
-    	maxMove(root,1);
+    	//System.out.println("Root Valid Moves:"+removeDuplicates(root.validMoves(Colour.Black)).size());
+    	
+    	int distance = 0;
+    	for(Colour colour: view.getPlayers()) {
+        	if(!colour.equals(Colour.Black)) {
+        		
+        		distance += distanceMatrix[root.getPlayer(Colour.Black).location-1][root.getPlayer(colour).location-1];
+        	}
+        }
+        
+    	//System.out.println("Distance from 185 to 153: "+distanceMatrix[184][152]);
+    	
+    	maxMove(root,1,root.beta);
     	
 		
     	/*
@@ -369,11 +491,29 @@ public class RandomPlayer implements Player {
     	}
     	*/
        
-    	System.out.println("Int i: "+i);
+    	
     	System.out.println("AI Move " +selectMove.toString());
         return selectMove;
     }
-    
+    public List<Move> removeDuplicates(List<Move> list) {
+
+    	// Store unique items in result.
+    	List<Move> result = new ArrayList<>();
+
+    	// Record encountered Strings in HashSet.
+    	HashSet<Move> set = new HashSet<>();
+
+    	// Loop over argument list.
+    	for (Move item : list) {
+
+    	    // If String is not in set, add it to the list and the set.
+    	    if (!set.contains(item)) {
+    		result.add(item);
+    		set.add(item);
+    	    }
+    	}
+    	return result;
+        }
     
     	    
 }
